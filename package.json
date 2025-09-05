@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "test": "jest --runInBand"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",
@@ -15,5 +16,9 @@
     "jade": "~1.11.0",
     "mongoose": "^8.18.0",
     "morgan": "~1.9.1"
+  },
+  "devDependencies": {
+    "jest": "^30.1.3",
+    "supertest": "^7.1.4"
   }
 }
