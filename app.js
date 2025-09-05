@@ -18,6 +18,8 @@ import connectDB from "./config/database.js";
 import usersRouter from "./routes/users.js";
 import projectsRouter from "./routes/projects.js";
 import setupSwagger from "./swagger.js";
+import logsRouter from "./routes/logs.js";
+import messagesRouter from "./routes/messages.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,6 +40,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/projects', projectsRouter);
+app.use('/api/v1/logs', logsRouter);
+app.use('/api/v1/messages', messagesRouter);
 
 // Swagger
 setupSwagger(app);
