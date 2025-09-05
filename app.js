@@ -17,6 +17,8 @@ import indexRouter from "./routes/index.js";
 import connectDB from "./config/database.js";
 import usersRouter from "./routes/users.js";
 import projectsRouter from "./routes/projects.js";
+import logsRouter from "./routes/logs.js";
+import messagesRouter from "./routes/messages.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,23 +39,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/projects', projectsRouter);
+app.use('/api/v1/logs', logsRouter);
+app.use('/api/v1/messages', messagesRouter);
 
-// rota de teste do log
-app.post('/logs', async (req, res) => {
-  try {
-    const Log = mongoose.model('Log', new mongoose.Schema({
-      message: String,
-      level: { type: String, default: "info" },
-      timestamp: { type: Date, default: Date.now }
-    }));
-
-    const log = new Log(req.body);
-    await log.save();
-    res.status(201).json(log);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
 
 // catch 404
 app.use(function(req, res, next) {
