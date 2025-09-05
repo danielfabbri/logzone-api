@@ -11,6 +11,10 @@ import { fileURLToPath } from "url";
 
 // rotas
 import indexRouter from "./routes/index.js";
+
+
+// configuração do banco
+import connectDB from "./config/database.js";
 import usersRouter from "./routes/users.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,10 +22,8 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// conexão MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ Connected to MongoDB Atlas"))
-  .catch(err => console.error("❌ MongoDB connection error:", err));
+// conexão MongoDB local
+connectDB();
 
 // middlewares
 app.use(logger('dev'));
