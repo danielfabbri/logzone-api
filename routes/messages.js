@@ -1,6 +1,8 @@
 import express from 'express';
 import Message from '../models/Message.js';
 import MessageService from '../services/MessageService.js';
+import AIService from '../services/AIService.js';
+import WhatsAppService from '../services/WhatsAppService.js';
 import mongoose from 'mongoose';
 
 const messagesRouter = express.Router();
@@ -249,18 +251,97 @@ messagesRouter.post('/', async (req, res) => {
      const history = await MessageService.getMessagesByPhoneNumber(phoneNumber, options);
 
     // Criar resposta com AI
+    const aiService = new AIService();
+    const userMessage = req.body.content;
+    const conversationHistory = history.success ? history.data.messages : [];
     
-    // Responder para o Whatsapp do cliente
+    // Gerar resposta da IA
+    const aiResponse = await aiService.generateResponse(
+      userMessage,
+      phoneNumber,
+      conversationHistory,
+      {
+        project: req.body.project,
+        agentContext: "Você é um assistente virtual amigável e prestativo. Responda de forma clara e concisa em português brasileiro."
+      }
+    );
+
+    // Salvar mensagem do usuário no banco
+    const userMessageRecord = await Message.create(req.body);
     
-    // Salvar no banco de dados as 2 mensagens (mensagem do cliente e resposta da AI)
-    const message = await Message.create(req.body);
-    res.status(201).json({
-      success: true,
-      data: message,
-      database: mongoose.connection.name,
-      host: mongoose.connection.host,
-      history: history
-    });
+    let aiMessageRecord = null;
+    if (aiResponse.success) {
+      // Criar mensagem de resposta da IA
+      const aiMessageData = {
+        project: req.body.project,
+        content: aiResponse.data.aiMessage,
+        fromPhone: req.body.toPhone, // IA responde do número do sistema
+        toPhone: phoneNumber, // Para o usuário
+        type: req.body.type || 'whatsapp',
+        status: 'pending',
+        priority: 'normal',
+        metadata: {
+          aiGenerated: true,
+          model: aiResponse.data.model,
+          usage: aiResponse.data.usage,
+          conversationLength: aiResponse.data.conversationLength
+        }
+      };
+      // Salvar mensagem do AI no banco
+      aiMessageRecord = await Message.create(aiMessageData);
+    }
+
+         // Responder para o Whatsapp do cliente
+     let whatsappResult = null;
+     if (aiResponse.success && aiMessageRecord) {
+       const whatsappService = new WhatsAppService();
+       const formattedPhone = whatsappService.formatPhoneNumber(phoneNumber);
+       
+       whatsappResult = await whatsappService.sendTextMessage(
+         formattedPhone,
+         aiResponse.data.aiMessage,
+         {
+           timeTyping: 1000,
+           delay: 500 // Pequeno delay para simular digitação
+         }
+       );
+
+       // Atualizar status da mensagem da IA se envio foi bem-sucedido
+       if (whatsappResult.success) {
+         await Message.findByIdAndUpdate(aiMessageRecord._id, {
+           status: 'sent',
+           externalId: whatsappResult.data.messageId,
+           provider: 'apibrasil',
+           metadata: {
+             ...aiMessageRecord.metadata,
+             whatsappMessageId: whatsappResult.data.messageId,
+             whatsappStatus: whatsappResult.data.status
+           }
+         });
+       } else {
+         // Marcar como falha se não conseguiu enviar
+         await Message.findByIdAndUpdate(aiMessageRecord._id, {
+           status: 'failed',
+           metadata: {
+             ...aiMessageRecord.metadata,
+             whatsappError: whatsappResult.error
+           }
+         });
+       }
+     }
+
+     res.status(201).json({
+       success: true,
+       data: {
+         userMessage: userMessageRecord,
+         aiMessage: aiMessageRecord,
+         aiResponse: aiResponse,
+         whatsappResult: whatsappResult
+       },
+       database: mongoose.connection.name,
+       host: mongoose.connection.host,
+       history: history
+     });
 
   } catch (error) {
     res.status(500).json({
@@ -506,140 +587,84 @@ messagesRouter.get('/phone/:phoneNumber', async (req, res) => {
 
 /**
  * @swagger
- * /api/v1/messages/conversation/{clientPhone}:
- *   get:
- *     summary: Retorna histórico de conversa entre cliente e sistema
+ * /api/v1/messages/whatsapp/test:
+ *   post:
+ *     summary: Testa conexão com WhatsApp API
  *     tags: [Messages]
- *     parameters:
- *       - in: path
- *         name: clientPhone
- *         required: true
- *         schema: { type: string }
- *       - in: query
- *         name: project
- *         schema: { type: string }
- *       - in: query
- *         name: limit
- *         schema: { type: integer }
- *       - in: query
- *         name: skip
- *         schema: { type: integer }
- *       - in: query
- *         name: startDate
- *         schema: { type: string, format: date-time }
- *       - in: query
- *         name: endDate
- *         schema: { type: string, format: date-time }
- *       - in: query
- *         name: includeSystemMessages
- *         schema: { type: boolean, default: true }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               phoneNumber:
+ *                 type: string
+ *                 example: "5521999999999"
+ *               message:
+ *                 type: string
+ *                 example: "Teste de conexão"
  *     responses:
  *       200:
- *         description: Histórico de conversa
+ *         description: Teste realizado
  */
-/* GET conversation history between client and system */
-messagesRouter.get('/conversation/:clientPhone', async (req, res) => {
+/* POST test WhatsApp connection */
+messagesRouter.post('/whatsapp/test', async (req, res) => {
   try {
-    const { clientPhone } = req.params;
-    const options = {
-      project: req.query.project,
-      limit: req.query.limit,
-      skip: req.query.skip,
-      startDate: req.query.startDate,
-      endDate: req.query.endDate,
-      includeSystemMessages: req.query.includeSystemMessages !== 'false'
-    };
-
-    const result = await MessageService.getConversationHistory(clientPhone, options);
+    const { phoneNumber, message = "Teste de conexão com WhatsApp API" } = req.body;
     
-    if (result.success) {
-      res.json({
-        success: true,
-        data: result.data
-      });
-    } else {
-      res.status(500).json({
+    if (!phoneNumber) {
+      return res.status(400).json({
         success: false,
-        message: 'Erro ao buscar histórico da conversa',
-        error: result.error
+        message: 'Número de telefone é obrigatório'
       });
     }
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao buscar histórico da conversa',
-      error: error.message
-    });
-  }
-});
 
-/**
- * @swagger
- * /api/v1/messages/stats/overview:
- *   get:
- *     summary: Estatísticas agregadas de mensagens
- *     tags: [Messages]
- *     parameters:
- *       - in: query
- *         name: project
- *         schema: { type: string }
- *       - in: query
- *         name: startDate
- *         schema: { type: string, format: date-time }
- *       - in: query
- *         name: endDate
- *         schema: { type: string, format: date-time }
- *     responses:
- *       200:
- *         description: Estatísticas calculadas
- */
-/* GET messages statistics */
-messagesRouter.get('/stats/overview', async (req, res) => {
-  try {
-    const { project, startDate, endDate } = req.query;
+    const whatsappService = new WhatsAppService();
     
-    const filters = {};
-    if (project) filters.project = project;
-    if (startDate || endDate) {
-      filters.createdAt = {};
-      if (startDate) filters.createdAt.$gte = new Date(startDate);
-      if (endDate) filters.createdAt.$lte = new Date(endDate);
-    }
-    
-    const stats = await Message.aggregate([
-      { $match: filters },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: 1 },
-          sent: { $sum: { $cond: [{ $eq: ['$status', 'sent'] }, 1, 0] } },
-          delivered: { $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] } },
-          read: { $sum: { $cond: [{ $eq: ['$status', 'read'] }, 1, 0] } },
-          failed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
-          pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
-          totalCost: { $sum: '$cost' }
-        }
-      }
-    ]);
-    
-    const result = stats[0] || {
-      total: 0,
-      sent: 0,
-      delivered: 0,
-      read: 0,
-      failed: 0,
-      pending: 0,
-      totalCost: 0
+    // Verificar configurações
+    const config = {
+      hasEmail: !!process.env.WHATSAPP_EMAIL,
+      hasPassword: !!process.env.WHATSAPP_PASSWORD,
+      hasDeviceToken: !!process.env.WHATSAPP_DEVICE_TOKEN,
+      email: process.env.WHATSAPP_EMAIL ? process.env.WHATSAPP_EMAIL.substring(0, 5) + '***' : 'NOT_SET',
+      deviceToken: process.env.WHATSAPP_DEVICE_TOKEN ? process.env.WHATSAPP_DEVICE_TOKEN.substring(0, 8) + '***' : 'NOT_SET'
     };
+
+    console.log('WhatsApp Test - Configurações:', config);
     
+    // Testar conexão primeiro
+    const connectionTest = await whatsappService.testConnection();
+    
+    if (!connectionTest.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Falha na conexão com WhatsApp API',
+        error: connectionTest.error,
+        config: config
+      });
+    }
+
+    // Enviar mensagem de teste
+    const formattedPhone = whatsappService.formatPhoneNumber(phoneNumber);
+    const sendResult = await whatsappService.sendTextMessage(formattedPhone, message);
+
     res.json({
       success: true,
-      data: result
+      data: {
+        config: config,
+        connectionTest: connectionTest,
+        sendResult: sendResult,
+        phoneNumber: formattedPhone,
+        message: message
+      }
     });
+
   } catch (error) {
+    console.error('WhatsApp Test Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erro ao buscar estatísticas',
+      message: 'Erro ao testar WhatsApp',
       error: error.message
     });
   }
