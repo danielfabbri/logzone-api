@@ -16,6 +16,7 @@ import indexRouter from "./routes/index.js";
 // configuração do banco
 import connectDB from "./config/database.js";
 import usersRouter from "./routes/users.js";
+import projectsRouter from "./routes/projects.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,7 +35,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // rotas
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/api/v1/users', usersRouter);
+app.use('/api/v1/projects', projectsRouter);
 
 // rota de teste do log
 app.post('/logs', async (req, res) => {
