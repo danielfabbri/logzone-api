@@ -27,18 +27,15 @@ usersRouter.get('/', async (req, res) => {
 /* POST users listing. */
 usersRouter.post('/', async (req, res) => {
   try {
-    const users = await User.create(req.body);
-    res.json({
+    const user = await User.create(req.body);
+    res.status(201).json({
       success: true,
-      count: users.length,
-      data: users,
-      database: mongoose.connection.name,
-      host: mongoose.connection.host
+      data: user
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(400).json({
       success: false,
-      message: 'Erro ao buscar usuários',
+      message: 'Erro ao criar usuário',
       error: error.message
     });
   }
@@ -48,6 +45,12 @@ usersRouter.post('/', async (req, res) => {
 usersRouter.get('/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuário não encontrado'
+      });
+    }
     res.json({
       success: true,
       data: user

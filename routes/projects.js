@@ -27,18 +27,15 @@ projectsRouter.get('/', async (req, res) => {
 /* POST projects listing. */
 projectsRouter.post('/', async (req, res) => {
   try {
-    const projects = await project.create(req.body);
-    res.json({
+    const newProject = await project.create(req.body);
+    res.status(201).json({
       success: true,
-      count: projects.length,
-      data: projects,
-      database: mongoose.connection.name,
-      host: mongoose.connection.host
+      data: newProject
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(400).json({
       success: false,
-      message: 'Erro ao buscar projetos',
+      message: 'Erro ao criar projeto',
       error: error.message
     });
   }
@@ -48,6 +45,12 @@ projectsRouter.post('/', async (req, res) => {
 projectsRouter.get('/:id', async (req, res) => {
   try {
     const foundProject = await project.findById(req.params.id);
+    if (!foundProject) {
+      return res.status(404).json({
+        success: false,
+        message: 'Projeto não encontrado'
+      });
+    }
     res.json({
       success: true,
       data: foundProject
