@@ -5,6 +5,136 @@ import mongoose from 'mongoose';
 
 const messagesRouter = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Messages
+ *   description: Endpoints de Mensagens
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Message:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           example: 68ba4bc002f25365840a6713
+ *         project:
+ *           type: string
+ *           description: ID do projeto
+ *           example: 68ba4bc93b8beb247851a53c
+ *         status:
+ *           type: string
+ *           enum: [sent, delivered, read, failed, pending]
+ *           example: sent
+ *         type:
+ *           type: string
+ *           enum: [inbound, outbound]
+ *           example: outbound
+ *         fromPhone:
+ *           type: string
+ *           example: 5521987654321
+ *         toPhone:
+ *           type: string
+ *           example: 5521999999999
+ *         priority:
+ *           type: string
+ *           enum: [low, normal, high]
+ *           example: normal
+ *         content:
+ *           type: string
+ *           example: Olá! Sua ordem foi processada.
+ *         cost:
+ *           type: number
+ *           example: 0.03
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           example: 2025-02-05T12:00:00.000Z
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           example: 2025-02-05T12:05:00.000Z
+ */
+
+/**
+ * @swagger
+ * /api/v1/messages:
+ *   get:
+ *     summary: Lista mensagens com filtros e paginação
+ *     tags: [Messages]
+ *     parameters:
+ *       - in: query
+ *         name: project
+ *         schema: { type: string }
+ *       - in: query
+ *         name: status
+ *         schema: { type: string, enum: [sent, delivered, read, failed, pending] }
+ *       - in: query
+ *         name: type
+ *         schema: { type: string, enum: [inbound, outbound] }
+ *       - in: query
+ *         name: fromPhone
+ *         schema: { type: string }
+ *       - in: query
+ *         name: toPhone
+ *         schema: { type: string }
+ *       - in: query
+ *         name: priority
+ *         schema: { type: string, enum: [low, normal, high] }
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date-time }
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date-time }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 50 }
+ *       - in: query
+ *         name: skip
+ *         schema: { type: integer, default: 0 }
+ *     responses:
+ *       200:
+ *         description: Lista de mensagens
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 count: { type: number }
+ *                 total: { type: number }
+ *                 data:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/Message' }
+ *             examples:
+ *               exemplo:
+ *                 value:
+ *                   success: true
+ *                   count: 2
+ *                   total: 42
+ *                   data:
+ *                     - _id: 68ba4bc002f25365840a6713
+ *                       project: 68ba4bc93b8beb247851a53c
+ *                       status: delivered
+ *                       type: outbound
+ *                       fromPhone: 5521987654321
+ *                       toPhone: 5521999999999
+ *                       content: Pedido entregue.
+ *                       createdAt: 2025-02-05T12:00:00.000Z
+ *                     - _id: 68ba4bc102f25365840a6714
+ *                       project: 68ba4bc93b8beb247851a53c
+ *                       status: read
+ *                       type: inbound
+ *                       fromPhone: 5521999999999
+ *                       toPhone: 5521987654321
+ *                       content: Obrigado!
+ *                       createdAt: 2025-02-05T12:01:00.000Z
+ */
 /* GET messages listing. */
 messagesRouter.get('/', async (req, res) => {
   try {
@@ -62,6 +192,40 @@ messagesRouter.get('/', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/messages:
+ *   post:
+ *     summary: Cria uma nova mensagem
+ *     tags: [Messages]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Message'
+ *           examples:
+ *             valido:
+ *               value:
+ *                 project: 68ba4bc93b8beb247851a53c
+ *                 status: sent
+ *                 type: outbound
+ *                 fromPhone: 5521987654321
+ *                 toPhone: 5521999999999
+ *                 content: Seu pedido foi recebido.
+ *     responses:
+ *       201:
+ *         description: Mensagem criada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { $ref: '#/components/schemas/Message' }
+ *       500:
+ *         description: Erro ao criar mensagem
+ */
 /* POST messages listing. */
 messagesRouter.post('/', async (req, res) => {
   try {
@@ -107,6 +271,32 @@ messagesRouter.post('/', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/messages/{id}:
+ *   get:
+ *     summary: Busca mensagem por ID
+ *     tags: [Messages]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Mensagem encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data: { $ref: '#/components/schemas/Message' }
+ *       400:
+ *         description: ID inválido
+ *       404:
+ *         description: Mensagem não encontrada
+ */
 /* GET message by id listing. */
 messagesRouter.get('/:id', async (req, res) => {
   try {
@@ -142,6 +332,29 @@ messagesRouter.get('/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/messages/{id}:
+ *   put:
+ *     summary: Atualiza mensagem por ID
+ *     tags: [Messages]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Message'
+ *     responses:
+ *       200:
+ *         description: Mensagem atualizada
+ *       404:
+ *         description: Mensagem não encontrada
+ */
 /* PUT message by id listing. */
 messagesRouter.put('/:id', async (req, res) => {
   try {
@@ -168,6 +381,23 @@ messagesRouter.put('/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/messages/{id}:
+ *   delete:
+ *     summary: Remove mensagem por ID
+ *     tags: [Messages]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Mensagem removida
+ *       404:
+ *         description: Mensagem não encontrada
+ */
 /* DELETE message by id listing. */
 messagesRouter.delete('/:id', async (req, res) => {
   try {
@@ -194,6 +424,45 @@ messagesRouter.delete('/:id', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/messages/phone/{phoneNumber}:
+ *   get:
+ *     summary: Lista mensagens por número de telefone
+ *     tags: [Messages]
+ *     parameters:
+ *       - in: path
+ *         name: phoneNumber
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: project
+ *         schema: { type: string }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: skip
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date-time }
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date-time }
+ *       - in: query
+ *         name: status
+ *         schema: { type: string, enum: [sent, delivered, read, failed, pending] }
+ *       - in: query
+ *         name: type
+ *         schema: { type: string, enum: [inbound, outbound] }
+ *       - in: query
+ *         name: formatForAI
+ *         schema: { type: boolean, default: false }
+ *     responses:
+ *       200:
+ *         description: Mensagens encontradas
+ */
 /* GET messages by phone number */
 messagesRouter.get('/phone/:phoneNumber', async (req, res) => {
   try {
@@ -235,6 +504,39 @@ messagesRouter.get('/phone/:phoneNumber', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/messages/conversation/{clientPhone}:
+ *   get:
+ *     summary: Retorna histórico de conversa entre cliente e sistema
+ *     tags: [Messages]
+ *     parameters:
+ *       - in: path
+ *         name: clientPhone
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: project
+ *         schema: { type: string }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: skip
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date-time }
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date-time }
+ *       - in: query
+ *         name: includeSystemMessages
+ *         schema: { type: boolean, default: true }
+ *     responses:
+ *       200:
+ *         description: Histórico de conversa
+ */
 /* GET conversation history between client and system */
 messagesRouter.get('/conversation/:clientPhone', async (req, res) => {
   try {
@@ -271,6 +573,26 @@ messagesRouter.get('/conversation/:clientPhone', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/v1/messages/stats/overview:
+ *   get:
+ *     summary: Estatísticas agregadas de mensagens
+ *     tags: [Messages]
+ *     parameters:
+ *       - in: query
+ *         name: project
+ *         schema: { type: string }
+ *       - in: query
+ *         name: startDate
+ *         schema: { type: string, format: date-time }
+ *       - in: query
+ *         name: endDate
+ *         schema: { type: string, format: date-time }
+ *     responses:
+ *       200:
+ *         description: Estatísticas calculadas
+ */
 /* GET messages statistics */
 messagesRouter.get('/stats/overview', async (req, res) => {
   try {
