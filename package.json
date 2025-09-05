@@ -19,6 +19,7 @@
     "mongoose": "^8.18.0",
     "morgan": "~1.9.1",
     "swagger-jsdoc": "^6.2.8",
+    "swagger-themes": "^1.4.3",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {

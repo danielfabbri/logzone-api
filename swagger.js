@@ -1,6 +1,11 @@
 // swagger.js (ESM)
 import swaggerJSDoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
+import { SwaggerTheme } from "swagger-themes";
+
+const theme = new SwaggerTheme();
+const darkTheme = theme.getBuffer("dark");
+
 
 const setupSwagger = (app) => {
   const port = process.env.PORT || 3000;
@@ -25,7 +30,14 @@ const setupSwagger = (app) => {
   };
 
   const swaggerSpec = swaggerJSDoc(options);
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.use(
+    "/api-docs", 
+    swaggerUi.serve, 
+    swaggerUi.setup(swaggerSpec, {
+      explorer: true,
+      customCss: darkTheme,
+      customSiteTitle: "📖 Logzone API Docs",
+    }));
 };
 
 export default setupSwagger;
