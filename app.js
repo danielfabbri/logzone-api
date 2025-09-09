@@ -8,6 +8,7 @@ import logger from "morgan";
 import mongoose from "mongoose";
 import path from "path";
 import { fileURLToPath } from "url";
+import cors from 'cors';
 
 // rotas
 import indexRouter from "./routes/index.js";
@@ -35,6 +36,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors({
+  origin: 'http://localhost:4000'
+}));
 
 // rotas
 app.use('/', indexRouter);
