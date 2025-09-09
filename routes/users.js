@@ -1,6 +1,7 @@
 import express from 'express';
 import User from '../models/User.js';
 import mongoose from 'mongoose';
+import bcrypt from "bcryptjs";
 
 const usersRouter = express.Router();
 
@@ -177,21 +178,36 @@ usersRouter.get('/', async (req, res) => {
  *                   error: "Path `email` is required."
  */
 /* POST users listing. */
-usersRouter.post('/', async (req, res) => {
+const createUser = async (req, res) => {
   try {
-    const user = await User.create(req.body);
+    const { name, email, password } = req.body;
+
+    // gera hash da senha
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword
+    });
+
+    await user.save();
+
     res.status(201).json({
       success: true,
       data: user
     });
-  } catch (error) {
+  } catch (err) {
     res.status(400).json({
       success: false,
       message: 'Erro ao criar usuário',
-      error: error.message
+      error: err.message
     });
   }
-});
+};
+
+usersRouter.post('/', createUser);
 
 /**
  * @swagger

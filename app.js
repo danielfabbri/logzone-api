@@ -10,11 +10,13 @@ import path from "path";
 import { fileURLToPath } from "url";
 import cors from 'cors';
 
+
 // rotas
 import indexRouter from "./routes/index.js";
 
 
 // configuração do banco
+import authRouter from './routes/auth.js';
 import connectDB from "./config/database.js";
 import usersRouter from "./routes/users.js";
 import projectsRouter from "./routes/projects.js";
@@ -42,6 +44,8 @@ app.use(cors({
 
 // rotas
 app.use('/', indexRouter);
+app.use('/api/v1/auth', authRouter);
+// app.use('/api/users', usersRouter);
 app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/projects', projectsRouter);
 app.use('/api/v1/logs', logsRouter);
