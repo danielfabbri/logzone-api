@@ -109,38 +109,33 @@ logsRouter.get('/', async (req, res) => {
 /* POST logs listing. */
 logsRouter.post('/', async (req, res) => {
   try {
-    const { apiKey, level, message, source } = req.body;
+    const { project, apiKey, source, environment, level, message, context } = req.body;
 
-    // Verifica se a apiKey foi enviada
-    if (!apiKey) {
-      return res.status(400).json({
-        success: false,
-        message: "API Key é obrigatória"
-      });
-    }
-
-    // Busca o projeto pelo apiKey
-    const project = await Project.findOne({ apiKey });
-    if (!project) {
+    // Verifica se o project e apiKey batem
+    const projectFound = await Project.findOne({ _id: project, apiKey });
+    if (!projectFound) {
       return res.status(403).json({
         success: false,
-        message: "API Key inválida"
+        message: "API Key inválida ou não corresponde ao projeto informado"
       });
     }
 
-    // Cria o log vinculado ao projeto
+    // Cria o log
     const log = await Log.create({
-      project: project._id,
+      project: projectFound._id,
+      source,
+      environment,
       level,
       message,
-      source,
+      context,
       timestamp: new Date()
     });
 
     res.status(201).json({
       success: true,
       data: log,
-      project: project.name
+      database: mongoose.connection.name,
+      host: mongoose.connection.host
     });
   } catch (error) {
     res.status(500).json({
@@ -150,6 +145,7 @@ logsRouter.post('/', async (req, res) => {
     });
   }
 });
+
 
 /**
  * @swagger
