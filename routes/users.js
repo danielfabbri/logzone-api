@@ -189,6 +189,7 @@ const createUser = async (req, res) => {
     const user = new User({
       name,
       email,
+      company,
       password: hashedPassword
     });
 

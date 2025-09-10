@@ -32,6 +32,7 @@ const userSchema = new mongoose.Schema({
       type: Date
   },
   avatar: String,
+  company: String
 });
 
 // Aplicar middleware de timestamps automaticamente
