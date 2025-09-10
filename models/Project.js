@@ -16,6 +16,11 @@ const projectSchema = new mongoose.Schema({
     type: Array
   },
   avatar: String,
+  apiKey: { 
+    type: String, 
+    required: true, 
+    unique: true 
+  },
 });
 
 // Aplicar middleware de timestamps automaticamente

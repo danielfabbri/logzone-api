@@ -1,6 +1,8 @@
 import express from 'express';
 import Log from '../models/Log.js';
 import mongoose from 'mongoose';
+import Project from "../models/Project.js";
+
 
 const logsRouter = express.Router();
 
@@ -107,12 +109,38 @@ logsRouter.get('/', async (req, res) => {
 /* POST logs listing. */
 logsRouter.post('/', async (req, res) => {
   try {
-    const log = await Log.create(req.body);
+    const { apiKey, level, message, source } = req.body;
+
+    // Verifica se a apiKey foi enviada
+    if (!apiKey) {
+      return res.status(400).json({
+        success: false,
+        message: "API Key é obrigatória"
+      });
+    }
+
+    // Busca o projeto pelo apiKey
+    const project = await Project.findOne({ apiKey });
+    if (!project) {
+      return res.status(403).json({
+        success: false,
+        message: "API Key inválida"
+      });
+    }
+
+    // Cria o log vinculado ao projeto
+    const log = await Log.create({
+      project: project._id,
+      level,
+      message,
+      source,
+      timestamp: new Date()
+    });
+
     res.status(201).json({
       success: true,
       data: log,
-      database: mongoose.connection.name,
-      host: mongoose.connection.host
+      project: project.name
     });
   } catch (error) {
     res.status(500).json({

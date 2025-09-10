@@ -1,6 +1,7 @@
 import express from 'express';
 import project from '../models/Project.js';
 import mongoose from 'mongoose';
+import crypto from "crypto";
 
 const projectsRouter = express.Router();
 
@@ -124,9 +125,21 @@ projectsRouter.get('/', async (req, res) => {
  *                   error: "Path `name` is required."
  */
 /* POST projects listing. */
+
+
 projectsRouter.post('/', async (req, res) => {
   try {
-    const newProject = await project.create(req.body);
+    const { name, description } = req.body;
+
+    // Gera uma apiKey única (pode ser do tamanho que quiser)
+    const apiKey = crypto.randomBytes(32).toString("hex");
+
+    const newProject = await project.create({
+      name,
+      description,
+      apiKey,
+    });
+
     res.status(201).json({
       success: true,
       data: newProject
@@ -139,6 +152,7 @@ projectsRouter.post('/', async (req, res) => {
     });
   }
 });
+
 
 /**
  * @swagger
